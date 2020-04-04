@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8' />
+  <title>Tracker</title>
+  <script src='../fullcalendar/lib/jquery.min.js'></script>
+  <script src='../fullcalendar/lib/moment.min.js'></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.1/fullcalendar.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.10.1/fullcalendar.min.css" />
+
+<script src="https://www.gstatic.com/firebasejs/7.13.2/firebase-app.js"></script>
+
+<script src="https://www.gstatic.com/firebasejs/7.13.2/firebase-firestore.js"></script>
+
+<script>
+// Your web app's Firebase configuration
+var firebaseConfig = {
+apiKey: "AIzaSyD2d1dizo99HW8PDMsCOaMbozJd-xwGM4o",
+authDomain: "calendar-8bbc4.firebaseapp.com",
+databaseURL: "https://calendar-8bbc4.firebaseio.com",
+projectId: "calendar-8bbc4",
+storageBucket: "calendar-8bbc4.appspot.com",
+messagingSenderId: "262485328035",
+appId: "1:262485328035:web:66915a8a660a5949b07f16",
+measurementId: "G-QT65BWLFHL"
+};
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const firestore = firebase.firestore();
+</script>
+</head>
+<body>
+
+  <input type="text" placeholder="Enter Title" id="txtTitle" />
+  <input type="text" placeholder="Enter Date" id="txtDate" />
+  <button onclick="addNewEvent()">Add</button>
+  <div id='calendar'></div>
+
+  <script>
+    var events = firestore.collection('events');
+    function addNewEvent() {
+      var start = moment($("#txtDate").val()).toDate();
+      var title = $("#txtTitle").val();
+      var event = { title: title, start: start };
+      events.add(event);
+    }
+    var eventsArray=[{title: "Sample", start:"2020-04-04"}]
+    $("#calendar").fullCalendar(
+      {
+        header: {
+          left: 'month,agendaWeek,agendaDay',
+          center: 'title',
+          right: 'today, prevYear,prev,next,nextYear'
+        },
+        selectable: true,
+        selectHelper: true,
+        select: function(start, end) {
+          var title = prompt('Event Title:');
+          var eventData;
+          if (title) {
+            eventData = {
+              title: title,
+              start: start,
+              end: end
+            };
+            $('#calendar').fullCalendar('renderEvent', eventData, true); // stick? = true
+          }
+          $('#calendar').fullCalendar('unselect');
+        },
+        editable: true,
+        events:function(start,end, timezone, callback) {
+          callback(eventsArray);
+        }
+      });
+    function addEvent(docRef) {
+      var event = { id:docRef.id, start:docRef.data().start.toDate(), title:docRef.data().title };
+      eventsArray.push(event);
+      $("#calendar").fullCalendar('renderEvent', event);
+    }
+    function modifyEvent(docRef) {
+      var id = docRef.id;
+      var data = docRef.data();
+      var event = $.grep(eventsArray, function (obj) {
+          return obj.id === id;
+      })[0];
+      event.title = data.title;
+      $("#calendar").fullCalendar('removeEvents', id);
+      $("#calendar").fullCalendar('renderEvent', event);
+    }
+
+    function deleteEvent(id) {
+      eventsArray = $.grep(eventsArray, function (obj) { return obj.id === id }, true);
+    }
+
+
+    events.onSnapshot(function (snapshot) {
+      snapshot.docChanges().forEach(function (change) {
+        if (change.type === 'added') {
+          addEvent(change.doc);
+        }
+        if(change.type === 'modified') {
+          modifyEvent(change.doc);
+        }
+        if(change.type === 'removed') {
+          deleteEvent(change.doc.id);
+        }
+      })
+    })
+  </script>
+
+
+</body>
+</html>
