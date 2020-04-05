@@ -44,34 +44,28 @@ const firestore = firebase.firestore();
       var event = { title: title, start: start };
       events.add(event);
     }
-    var eventsArray=[{title: "Sample", start:"2020-04-04"}]
+    var eventsArray=[{title: "Calendar Created", start:"2020-04-04"}]
     $("#calendar").fullCalendar(
       {
+        events: function (start, end, timezone, callback) {
+          callback(eventsArray);
+        },
         header: {
           left: 'month,agendaWeek,agendaDay',
           center: 'title',
           right: 'today, prevYear,prev,next,nextYear'
         },
-        selectable: true,
-        selectHelper: true,
-        select: function(start, end) {
-          var title = prompt('Event Title:');
-          var eventData;
-          if (title) {
-            eventData = {
-              title: title,
-              start: start,
-              end: end
-            };
-            $('#calendar').fullCalendar('renderEvent', eventData, true); // stick? = true
-          }
-          $('#calendar').fullCalendar('unselect');
+        buttonText: {
+          prevYear: new moment().year() - 1,
+          nextYear: new moment().year() + 1
         },
-        editable: true,
-        events:function(start,end, timezone, callback) {
-          callback(eventsArray);
+        viewRender: function (view) {
+          var y = moment($('#calendar').fullCalendar('getDate')).year();
+          $(".fc-prevYear-button").text(y-1);
+          $(".fc-nextYear-button").text(y+1);
         }
       });
+
     function addEvent(docRef) {
       var event = { id:docRef.id, start:docRef.data().start.toDate(), title:docRef.data().title };
       eventsArray.push(event);
@@ -91,7 +85,6 @@ const firestore = firebase.firestore();
     function deleteEvent(id) {
       eventsArray = $.grep(eventsArray, function (obj) { return obj.id === id }, true);
     }
-
 
     events.onSnapshot(function (snapshot) {
       snapshot.docChanges().forEach(function (change) {
